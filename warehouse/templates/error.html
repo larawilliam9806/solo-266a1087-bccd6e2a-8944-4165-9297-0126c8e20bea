@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}操作未完成 · 环卫入仓台账{% endblock %}
+{% block content %}
+<section class="panel error-panel">
+  <p class="status-code">{{ status }}</p>
+  <h1>{{ message }}</h1>
+  {% if details %}
+  <div class="table-wrap">
+    <table class="ledger compact">
+      <thead>
+        <tr><th scope="col">行</th><th scope="col">单号</th><th scope="col">原因</th></tr>
+      </thead>
+      <tbody>
+        {% for item in details %}
+        <tr>
+          <td class="num">{{ item.line }}</td>
+          <td>{{ item.ticket_no or "—" }}</td>
+          <td>{{ item.message }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if detail_count > details|length %}
+  <p class="empty small">仅显示前 {{ details|length }} 条，共 {{ detail_count }} 条问题。</p>
+  {% endif %}
+  {% endif %}
+  <p class="empty small">没有写入任何数据，原单据与底表保持不变。</p>
+  <div class="panel-actions">
+    {% if state.initialized %}
+      <a class="btn" href="{{ url_for('dashboard', month=state.current_pending_month) }}">返回当前待封月 {{ state.current_pending_month }}</a>
+    {% else %}
+      <a class="btn" href="{{ url_for('dashboard') }}">返回</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

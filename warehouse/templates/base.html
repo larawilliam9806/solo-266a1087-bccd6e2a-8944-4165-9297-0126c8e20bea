@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}环卫入仓台账{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('dashboard') }}">
+      <span class="brand-mark" aria-hidden="true">秤</span>
+      <span>
+        <strong>环卫入仓台账</strong>
+        <small>地磅单月度封存</small>
+      </span>
+    </a>
+    {% if state.initialized %}
+    <nav class="topnav">
+      <span class="pill">当前待封月 <b>{{ state.current_pending_month }}</b></span>
+      {% if state.sealed_months %}
+      <span class="pill muted">已封 {{ state.sealed_months|length }} 个月</span>
+      {% endif %}
+    </nav>
+    {% endif %}
+  </header>
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <span>净重以千克录入、以克记账，合计精确无浮点误差。</span>
+    <span>封存后底表不可变，补单与更正计入当前待封月。</span>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

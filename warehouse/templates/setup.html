@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}选定首个待封月 · 环卫入仓台账{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>先选定首个待封月</h1>
+  <p class="lede">
+    选定的月份会成为第一份待封底表。后续每封存一个月，系统自动进入下一个月；
+    迟到的地磅单和对已封月的更正，都会计入当时的待封月。
+  </p>
+</section>
+
+<form class="card setup" method="post" action="{{ url_for('initialize') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <label class="field">
+    <span>首个待封月</span>
+    <input type="month" name="month" required autofocus>
+    <small>例如 2026-10。清运月不能晚于待封月。</small>
+  </label>
+  <button class="btn primary" type="submit">开始建账</button>
+</form>
+
+<section class="notes">
+  <h2>入账规则</h2>
+  <ul>
+    <li>同一单号的清运月一经入账即固定，修订只能向前。</li>
+    <li>旧版重传、原样重传都沿用当前值；提交当前版本却改了内容，整批退回。</li>
+    <li>已封月收到补单记净重，收到更正先冲回旧街道、再补记订正后的街道。</li>
+    <li>上传与封存按提交生效的先后归月，失败时原单据与底表保持不变。</li>
+  </ul>
+</section>
+{% endblock %}

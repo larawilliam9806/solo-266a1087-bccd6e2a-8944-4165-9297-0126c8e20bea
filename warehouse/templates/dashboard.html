@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+  <div class="panel tall">
+    <div class="panel-head">
+      <div>
+        <h1>{{ view.month }} 底表</h1>
+        <p class="sub">
+          {% if view.status == "pending" %}
+            待封月 · 上传即入账
+          {% else %}
+            已封存 · {{ view.table.sealed_at|time }} · 原表只读
+          {% endif %}
+        </p>
+      </div>
+      <div class="panel-actions">
+        {% if view.status == "pending" %}
+          <button class="btn primary" type="button" data-seal="{{ view.month }}">封存 {{ view.month }}</button>
+        {% else %}
+          <a class="btn" href="{{ url_for('download', month=view.month) }}">下载原表 CSV</a>
+          <form method="post" action="{{ url_for('seal') }}" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="month" value="{{ view.month }}">
+            <button class="btn ghost" type="submit">重封（返回原表）</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if view.table.rows %}
+    <div class="table-wrap">
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th scope="col">街道</th>
+            <th scope="col" class="num">当月净重<span>kg</span></th>
+            <th scope="col" class="num">旧月调整<span>kg</span></th>
+            <th scope="col" class="num">合计<span>kg</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in view.table.rows %}
+          <tr>
+            <th scope="row">{{ row.street }}</th>
+            <td class="num">{{ row.current_grams|kg }}</td>
+            <td class="num {{ 'neg' if row.adjustment_grams < 0 else ('pos' if row.adjustment_grams > 0 else '') }}">
+              {{ row.adjustment_grams|kg }}
+            </td>
+            <td class="num strong">{{ row.total_grams|kg }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">合计</th>
+            <td class="num">{{ view.table.totals.current_grams|kg }}</td>
+            <td class="num">{{ view.table.totals.adjustment_grams|kg }}</td>
+            <td class="num strong">{{ view.table.totals.total_grams|kg }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+      <p class="empty">这个月还没有入账数据。上传 CSV 后底表会按街道汇总。</p>
+    {% endif %}
+  </div>
+
+  <aside class="panel">
+    <h2>分批上传</h2>
+    <form id="upload-form" class="upload" enctype="multipart/form-data">
+      <label class="field">
+        <span>这批单据属于</span>
+        <select name="target_month">
+          <option value="{{ current_month }}">{{ current_month }}（当前待封月）</option>
+          {% for item in state.sealed_months|reverse %}
+          <option value="{{ item.month }}">{{ item.month }}（已封月，补单/更正）</option>
+          {% endfor %}
+        </select>
+        <small>选已封月时，补单与更正照样计入当前待封月 {{ current_month }}。</small>
+      </label>
+      <label class="field">
+        <span>CSV 文件</span>
+        <input type="file" name="file" accept=".csv,text/csv" required>
+        <small>列：单号、清运月、街道、净重（千克）、修订号。<a href="{{ url_for('template') }}">下载模板</a></small>
+      </label>
+      <div class="upload-target">
+        实际入账月份：<b>{{ current_month }}</b>
+        <small>上传与封存并发时，以事务生效先后归月。</small>
+      </div>
+      <button class="btn primary" type="submit">上传并校验整批</button>
+    </form>
+    <div id="upload-result" class="result" hidden></div>
+
+    <h2 class="spaced">已封月份</h2>
+    {% if state.sealed_months %}
+    <ul class="month-list">
+      {% for item in state.sealed_months|reverse %}
+      <li>
+        <a href="{{ url_for('dashboard', month=item.month) }}">{{ item.month }}</a>
+        <span class="muted">{{ item.total_grams|kg }} kg</span>
+        <a class="mini" href="{{ url_for('download', month=item.month) }}">原表</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty small">还没有封存的月份。</p>
+    {% endif %}
+  </aside>
+</section>
+
+{% if state.batches %}
+<section class="panel">
+  <h2>最近批次</h2>
+  <ul class="batch-list">
+    {% for batch in state.batches %}
+    <li>
+      <span class="batch-id">#{{ batch.id }}</span>
+      <span class="batch-file" title="{{ batch.filename }}">{{ batch.filename }}</span>
+      <span class="muted">归入 {{ batch.target_month }}</span>
+      <span>{{ batch.row_count }} 行 · 新 {{ batch.new_count }} · 更正 {{ batch.corrected_count }} · 沿用 {{ batch.noop_count }}</span>
+      <span class="muted">{{ batch.uploaded_at|time }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+{% endblock %}

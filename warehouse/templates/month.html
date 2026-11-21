@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ view.month }} 底表 · 环卫入仓台账{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h1>{{ view.month }} 底表</h1>
+      <p class="sub">
+        {% if view.status == "sealed" %}
+          已封存 · {{ view.table.sealed_at|time }} · 原表只读
+        {% else %}
+          待封月 · 实时汇总
+        {% endif %}
+      </p>
+    </div>
+    <div class="panel-actions">
+      {% if view.status == "sealed" %}
+        <a class="btn primary" href="{{ url_for('download', month=view.month) }}">下载原表 CSV</a>
+        <form method="post" action="{{ url_for('seal') }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="month" value="{{ view.month }}">
+          <button class="btn ghost" type="submit">重封（返回原表）</button>
+        </form>
+      {% elif view.month == current_month %}
+        <button class="btn primary" type="button" data-seal="{{ view.month }}">封存 {{ view.month }}</button>
+        <a class="btn" href="{{ url_for('dashboard') }}">返回上传</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if result == "sealed" %}<p class="notice ok">已封存 {{ view.month }}，下一个月 {{ current_month }} 已开启。</p>{% endif %}
+  {% if result == "unchanged" %}<p class="notice ok">{{ view.month }} 此前已封存，本次返回的是原表，未做任何改动。</p>{% endif %}
+
+  {% if view.table.rows %}
+  <div class="table-wrap">
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th scope="col">街道</th>
+          <th scope="col" class="num">当月净重<span>kg</span></th>
+          <th scope="col" class="num">旧月调整<span>kg</span></th>
+          <th scope="col" class="num">合计<span>kg</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.table.rows %}
+        <tr>
+          <th scope="row">{{ row.street }}</th>
+          <td class="num">{{ row.current_grams|kg }}</td>
+          <td class="num {{ 'neg' if row.adjustment_grams < 0 else ('pos' if row.adjustment_grams > 0 else '') }}">{{ row.adjustment_grams|kg }}</td>
+          <td class="num strong">{{ row.total_grams|kg }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">合计</th>
+          <td class="num">{{ view.table.totals.current_grams|kg }}</td>
+          <td class="num">{{ view.table.totals.adjustment_grams|kg }}</td>
+          <td class="num strong">{{ view.table.totals.total_grams|kg }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">这个月还没有入账数据。</p>
+  {% endif %}
+</section>
+
+{% if view.status == "sealed" %}
+<section class="panel sealed-note">
+  <h2>此月已封存</h2>
+  <p class="empty small">
+    {{ view.month }} 的底表已冻结，补单与更正不会改动它，而是计入当前待封月
+    {{ current_month }}。下载或重封都会返回上面这份原表。
+  </p>
+  <a class="btn" href="{{ url_for('dashboard', month=current_month) }}">去当前待封月 {{ current_month }} 上传</a>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+{% endblock %}

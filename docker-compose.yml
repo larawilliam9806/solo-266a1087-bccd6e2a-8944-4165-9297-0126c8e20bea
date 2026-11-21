@@ -1,0 +1,16 @@
+services:
+  ledger:
+    build: .
+    image: gsb-ledger:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # Set a stable secret in production so sessions survive restarts.
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      DATA_DIR: /data
+    volumes:
+      - ledger-data:/data
+    restart: unless-stopped
+
+volumes:
+  ledger-data:
